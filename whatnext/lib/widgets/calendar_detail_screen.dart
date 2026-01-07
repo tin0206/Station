@@ -1,9 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:whatnext/models/event_model.dart';
 import 'package:whatnext/utils/color.dart';
+import 'package:intl/intl.dart';
+import 'package:whatnext/widgets/event_detail_screen.dart';
+import 'package:whatnext/widgets/timezone_info_time_label.dart';
 
 class CalendarDetailScreen extends StatelessWidget {
   const CalendarDetailScreen({super.key});
+
+  String formatDuration(Duration duration) {
+    int hours = duration.inHours;
+    int minutes = duration.inMinutes.remainder(60);
+
+    if (hours > 0) {
+      return "$hours ${hours == 1 ? 'hour' : 'hours'}${minutes > 0 ? ' $minutes mins' : ''}";
+    } else {
+      return "$minutes mins";
+    }
+  }
+
+  DateTime getCurrentDateTime() {
+    return DateTime.now();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,9 +50,9 @@ class CalendarDetailScreen extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 12),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
+                  children: [
                     Text(
-                      "Tuesday",
+                      DateFormat('EEEE').format(getCurrentDateTime()),
                       style: TextStyle(
                         fontSize: 18,
                         color: Colors.black54,
@@ -48,21 +66,21 @@ class CalendarDetailScreen extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Column(
+                    Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          "13.12",
+                          DateFormat('dd MMM').format(getCurrentDateTime()),
                           style: TextStyle(
-                            fontSize: 70,
+                            fontSize: 60,
                             fontWeight: FontWeight.bold,
                             height: 1,
                           ),
                         ),
                         Text(
-                          "DEC",
+                          DateFormat('yyyy').format(getCurrentDateTime()),
                           style: TextStyle(
-                            fontSize: 70,
+                            fontSize: 60,
                             fontWeight: FontWeight.bold,
                             height: 0.8,
                           ),
@@ -82,9 +100,9 @@ class CalendarDetailScreen extends StatelessWidget {
                     const Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _TimezoneInfo(time: "1:20 PM", location: "New York"),
+                        TimezoneInfo(time: "1:20 PM", location: "New York"),
                         SizedBox(height: 20),
-                        _TimezoneInfo(
+                        TimezoneInfo(
                           time: "6:20 PM",
                           location: "United Kingdom",
                         ),
@@ -163,15 +181,22 @@ class CalendarDetailScreen extends StatelessWidget {
     final List<Event> mockEvents = [
       Event(
         title: "You Have A Meeting",
-        startTime: "3:00 PM",
-        endTime: "3:30 PM",
+        startTime: DateTime(2024, 6, 1, 15, 0),
+        endTime: DateTime(2024, 6, 1, 15, 30),
+        location: "Conference Room A",
       ),
       Event(
         title: "Project Discussion",
-        startTime: "4:00 PM",
-        endTime: "5:00 PM",
+        startTime: DateTime(2024, 6, 1, 16, 0),
+        endTime: DateTime(2024, 6, 1, 17, 0),
+        location: "Meeting Room B",
       ),
-      Event(title: "Client Call", startTime: "6:00 PM", endTime: "6:30 PM"),
+      Event(
+        title: "Client Call",
+        startTime: DateTime(2024, 6, 1, 18, 0),
+        endTime: DateTime(2024, 6, 1, 18, 30),
+        location: "Office",
+      ),
     ];
 
     return ListView.separated(
@@ -179,50 +204,78 @@ class CalendarDetailScreen extends StatelessWidget {
       itemCount: mockEvents.length,
       separatorBuilder: (_, _) => const SizedBox(height: 10),
       itemBuilder: (context, index) {
-        return _buildMeetingCard(mockEvents[index]);
+        return _buildMeetingCard(context, mockEvents[index]);
       },
     );
   }
 
   // Widget thẻ Meeting màu vàng
-  Widget _buildMeetingCard(Event event) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 2),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: randomColor(), // Màu vàng đồng
+  Widget _buildMeetingCard(BuildContext context, Event event) {
+    final Color currentColor = randomColor();
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
         borderRadius: BorderRadius.circular(30),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  EventDetailScreen(event: event, cardColor: currentColor),
+            ),
+          );
+        },
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 3),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: currentColor, // Màu vàng đồng
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                event.title,
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF5D4037),
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  SizedBox(
+                    width: 260,
+                    child: Text(
+                      event.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF5D4037),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 30),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TimeLabel(
+                    label: "Start",
+                    time: DateFormat('h:mm a').format(event.startTime),
+                  ),
+                  _buildSmallChip(
+                    formatDuration(event.endTime.difference(event.startTime)),
+                    color: const Color(0xFF5D4037),
+                    textColor: Colors.white,
+                  ),
+                  TimeLabel(
+                    label: "End",
+                    time: DateFormat('h:mm a').format(event.endTime),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 30),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _TimeLabel(label: "Start", time: event.startTime),
-              _buildSmallChip(
-                "30 Min",
-                color: const Color(0xFF5D4037),
-                textColor: Colors.white,
-              ),
-              _TimeLabel(label: "End", time: event.endTime),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -246,50 +299,6 @@ class CalendarDetailScreen extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
-    );
-  }
-}
-
-// Các Helper Widget nhỏ để code gọn hơn
-class _TimezoneInfo extends StatelessWidget {
-  final String time, location;
-  const _TimezoneInfo({required this.time, required this.location});
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          time,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-        ),
-        Text(location, style: const TextStyle(color: Colors.black54)),
-      ],
-    );
-  }
-}
-
-class _TimeLabel extends StatelessWidget {
-  final String label, time;
-  const _TimeLabel({required this.label, required this.time});
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          time,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF5D4037),
-          ),
-        ),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: Color(0xFF5D4037)),
-        ),
-      ],
     );
   }
 }

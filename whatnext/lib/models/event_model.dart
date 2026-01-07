@@ -1,15 +1,33 @@
+import 'package:flutter/material.dart';
+
+enum RemindType {
+  none,
+  atTimeOfEvent,
+  fiveMinutesBefore,
+  tenMinutesBefore,
+  fifteenMinutesBefore,
+  thirtyMinutesBefore,
+  oneHourBefore,
+  twoHoursBefore,
+  oneDayBefore,
+  twoDaysBefore,
+  oneWeekBefore,
+}
+
 class Event {
   final String title;
-  final String startTime;
-  final String endTime;
+  final DateTime startTime;
+  final DateTime endTime;
   final String? location;
-  final bool isReminder;
+  final RemindType remindType;
+  final Text? description;
 
   Event({
     required this.title,
     required this.startTime,
     required this.endTime,
     this.location,
-    this.isReminder = false,
+    this.remindType = RemindType.none,
+    this.description,
   });
 }
